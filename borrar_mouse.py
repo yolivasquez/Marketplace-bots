@@ -207,7 +207,10 @@ def main():
     while borradas < args.max:
         print(f"Publicacion {borradas + 1}:")
         if not borrar_una(confirmar=True):
-            print("Algo no aparecio; me detengo.")
+            if borradas:
+                print("Ya no encontre mas publicaciones (o algo no aparecio); me detengo.")
+            else:
+                print("Algo no aparecio; me detengo.")
             break
         borradas += 1
         print(f"   Borrada. Total: {borradas}")
