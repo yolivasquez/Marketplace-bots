@@ -71,9 +71,13 @@ def traer_navegador():
     return False
 
 
-def preparar_navegador():
+def preparar_navegador(url):
+    """Deja Facebook al frente. Si Windows no deja traer la ventana, abre la
+    pagina con el navegador predeterminado: asi Windows si lo pone al frente."""
     if traer_navegador():
         return
-    print("Abre Facebook en Chrome, Brave o Edge y ponlo al frente.")
-    print("Tienes 8 segundos...")
-    time.sleep(8)
+    import webbrowser
+
+    print("Abro Facebook en tu navegador predeterminado...")
+    webbrowser.open(url)
+    time.sleep(7)

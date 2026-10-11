@@ -188,7 +188,7 @@ def main():
         if not (BOTONES / f"{necesario}.png").exists():
             raise SystemExit(f"Falta botones/{necesario}.png (ver README).")
 
-    preparar_navegador()
+    preparar_navegador(URL_VENTAS)
     abrir_ventas()
 
     if not args.confirmar:

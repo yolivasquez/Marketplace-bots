@@ -623,6 +623,17 @@ class App(tk.Tk):
         self.boton_detener.configure(state="normal")
         self.iconify()
 
+        registro = CARPETA / "ultimo_registro.txt"  # para revisar despues que paso
+        registro.write_text(f"{datetime.now():%Y-%m-%d %H:%M}\n", encoding="utf-8")
+
+        def anotar(linea):
+            self.escribir(linea)
+            try:
+                with registro.open("a", encoding="utf-8") as f:
+                    f.write(linea)
+            except OSError:
+                pass
+
         def trabajo():
             for comando in comandos:
                 self.proceso = subprocess.Popen(
@@ -632,10 +643,10 @@ class App(tk.Tk):
                     env={**os.environ, "PYTHONIOENCODING": "utf-8"},
                 )
                 for linea in self.proceso.stdout:
-                    self.after(0, self.escribir, linea)
+                    self.after(0, anotar, linea)
                 codigo = self.proceso.wait()
                 if codigo != 0:
-                    self.after(0, self.escribir, "⚠ El bot se detuvo.\n")
+                    self.after(0, anotar, "⚠ El bot se detuvo.\n")
                     break
             self.proceso = None
             self.after(0, self._fin, al_terminar)

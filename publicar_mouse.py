@@ -262,7 +262,7 @@ def main():
     if not carpetas:
         raise SystemExit("No hay articulos en publicaciones/ (cada uno necesita su datos.txt).")
 
-    preparar_navegador()
+    preparar_navegador(URL_CREAR)
     for carpeta in carpetas:
         try:
             publicar(carpeta, args.confirmar)
