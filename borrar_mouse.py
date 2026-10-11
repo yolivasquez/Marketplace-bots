@@ -74,15 +74,21 @@ def buscar(nombre, zona=None, espera=6, caja=False):
     Devuelve su centro (o su caja completa si caja=True), o None.
     """
     global escala
-    original = Image.open(BOTONES / f"{nombre}.png").convert("RGB")
+    # nombre.png es el boton en espanol; nombre_en.png (u otros nombre_*.png)
+    # son el mismo boton con Facebook en otro idioma.
+    archivos = [BOTONES / f"{nombre}.png", *sorted(BOTONES.glob(f"{nombre}_*.png"))]
     variantes = []
-    for e in ([escala] if escala else ESCALAS):
-        recorte = original if e == 1.0 else original.resize(
-            (round(original.width * e), round(original.height * e)), Image.LANCZOS)
-        # Version invertida en gris: asi los recortes de Facebook en modo oscuro
-        # tambien sirven en modo claro (y en otro navegador con otro tema).
-        invertido = ImageOps.invert(recorte.convert("L")).convert("RGB")
-        variantes += [(recorte, False, e), (invertido, True, e)]
+    for archivo in archivos:
+        if not archivo.exists():
+            continue
+        original = Image.open(archivo).convert("RGB")
+        for e in ([escala] if escala else ESCALAS):
+            recorte = original if e == 1.0 else original.resize(
+                (round(original.width * e), round(original.height * e)), Image.LANCZOS)
+            # Version invertida en gris: asi los recortes de Facebook en modo oscuro
+            # tambien sirven en modo claro (y en otro navegador con otro tema).
+            invertido = ImageOps.invert(recorte.convert("L")).convert("RGB")
+            variantes += [(recorte, False, e), (invertido, True, e)]
     inicio = time.time()
     while time.time() - inicio < espera:
         encontrado = None
