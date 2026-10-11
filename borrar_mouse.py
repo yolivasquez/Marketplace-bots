@@ -25,9 +25,16 @@ from pathlib import Path
 import pyautogui
 from PIL import Image, ImageOps
 
+from navegador import preparar_navegador
+
 BOTONES = Path(__file__).resolve().parent / "botones"
 URL_VENTAS = "https://www.facebook.com/marketplace/you/selling"
 PARECIDO = 0.85  # que tanto debe parecerse la pantalla al recorte (0 a 1)
+# Los recortes se hicieron con Windows al 100 %. En otras PCs (laptops al 125 %
+# o 150 %) los botones se ven mas grandes: probamos varios tamanos y, cuando uno
+# funciona, lo usamos para todo lo demas.
+ESCALAS = (1.0, 1.25, 1.5, 1.1, 1.75, 0.9, 2.0)
+escala = None
 
 pyautogui.FAILSAFE = True  # mouse en una esquina = detener
 
@@ -51,9 +58,14 @@ def zona_centro():
     return recortar_a_pantalla(w // 4, h // 6, w // 2, h * 2 // 3)
 
 
+def px(valor):
+    """Convierte una distancia medida al 100 % a la escala de esta pantalla."""
+    return valor * (escala or 1.0)
+
+
 def zona_alrededor(punto):
     """Zona alrededor del boton "..." donde se abre su menu."""
-    return recortar_a_pantalla(punto.x - 450, punto.y - 450, 700, 900)
+    return recortar_a_pantalla(punto.x - px(450), punto.y - px(450), px(700), px(900))
 
 
 def buscar(nombre, zona=None, espera=6, caja=False):
@@ -61,19 +73,28 @@ def buscar(nombre, zona=None, espera=6, caja=False):
 
     Devuelve su centro (o su caja completa si caja=True), o None.
     """
-    recorte = Image.open(BOTONES / f"{nombre}.png").convert("RGB")
-    # Version invertida en gris: asi los recortes de Facebook en modo oscuro
-    # tambien sirven en modo claro (y en otro navegador con otro tema).
-    invertido = ImageOps.invert(recorte.convert("L")).convert("RGB")
+    global escala
+    original = Image.open(BOTONES / f"{nombre}.png").convert("RGB")
+    variantes = []
+    for e in ([escala] if escala else ESCALAS):
+        recorte = original if e == 1.0 else original.resize(
+            (round(original.width * e), round(original.height * e)), Image.LANCZOS)
+        # Version invertida en gris: asi los recortes de Facebook en modo oscuro
+        # tambien sirven en modo claro (y en otro navegador con otro tema).
+        invertido = ImageOps.invert(recorte.convert("L")).convert("RGB")
+        variantes += [(recorte, False, e), (invertido, True, e)]
     inicio = time.time()
     while time.time() - inicio < espera:
         encontrado = None
-        for imagen, gris in ((recorte, False), (invertido, True)):
+        for imagen, gris, e in variantes:
             try:
                 encontrado = pyautogui.locateOnScreen(imagen, confidence=PARECIDO, region=zona, grayscale=gris)
-            except pyautogui.ImageNotFoundException:
+            except (pyautogui.ImageNotFoundException, ValueError):  # ValueError: recorte mas grande que la zona
                 encontrado = None
             if encontrado:
+                if escala is None and e != 1.0:
+                    print(f"   (tu pantalla esta al {e:.0%}, ajusto los tamanos)")
+                escala = e
                 break
         if encontrado:
             print(f"   {nombre}: encontrado en {time.time() - inicio:.1f} s")
@@ -120,14 +141,14 @@ def borrar_una(confirmar):
     if not compartir:
         guardar_error()
         return False
-    a_la_derecha = recortar_a_pantalla(compartir.left + compartir.width, compartir.top - 15,
-                                       120, compartir.height + 30)
+    a_la_derecha = recortar_a_pantalla(compartir.left + compartir.width, compartir.top - px(15),
+                                       px(120), compartir.height + px(30))
     puntos = buscar("opciones", zona=a_la_derecha, espera=2)
     if not puntos:
         # En publicaciones viejas aparece "Volver a publicar este articulo" y
         # el "..." baja a la siguiente linea, a la izquierda.
-        abajo = recortar_a_pantalla(compartir.left - 700, compartir.top + compartir.height - 5,
-                                    700 + compartir.width + 120, 80)
+        abajo = recortar_a_pantalla(compartir.left - px(700), compartir.top + compartir.height - px(5),
+                                    px(700) + compartir.width + px(120), px(80))
         puntos = buscar("opciones", zona=abajo, espera=2)
     if not puntos:
         guardar_error(zona=abajo)
@@ -167,8 +188,7 @@ def main():
         if not (BOTONES / f"{necesario}.png").exists():
             raise SystemExit(f"Falta botones/{necesario}.png (ver README).")
 
-    print("Tienes 5 segundos para poner al frente tu navegador con Facebook...")
-    time.sleep(5)
+    preparar_navegador()
     abrir_ventas()
 
     if not args.confirmar:

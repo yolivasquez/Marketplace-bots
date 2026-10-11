@@ -26,12 +26,19 @@ import pyautogui
 import pyperclip
 from PIL import Image, ImageOps
 
+from navegador import preparar_navegador
+
 CARPETA = Path(__file__).resolve().parent
 BOTONES = CARPETA / "Botones" / "Crear"
 PUBLICACIONES = CARPETA / "publicaciones"
 URL_CREAR = "https://www.facebook.com/marketplace/create/item"
 PARECIDO = 0.85
 MAX_GRUPOS = 20  # limite de Facebook
+# Los recortes se hicieron con Windows al 100 %. En otras PCs (laptops al 125 %
+# o 150 %) los botones se ven mas grandes: probamos varios tamanos y, cuando uno
+# funciona, lo usamos para todo lo demas.
+ESCALAS = (1.0, 1.25, 1.5, 1.1, 1.75, 0.9, 2.0)
+escala = None
 
 pyautogui.FAILSAFE = True
 
@@ -67,20 +74,29 @@ def buscar(nombre, espera=6, scroll_en=None):
         captura = CARPETA / f"falta_{nombre.replace('/', '_')}.png"
         pyautogui.screenshot(str(captura))
         raise FaltaBoton(f"Falta la imagen Botones/Crear/{nombre}.png (guarde {captura.name})")
+    global escala
     # Abrimos la imagen con Pillow: OpenCV no lee rutas con tildes en Windows.
-    recorte = Image.open(ruta).convert("RGB")
-    # Version invertida en gris: asi un recorte de Facebook en modo oscuro
-    # tambien se encuentra en modo claro, y al reves.
-    invertido = ImageOps.invert(recorte.convert("L")).convert("RGB")
+    original = Image.open(ruta).convert("RGB")
+    variantes = []
+    for e in ([escala] if escala else ESCALAS):
+        recorte = original if e == 1.0 else original.resize(
+            (round(original.width * e), round(original.height * e)), Image.LANCZOS)
+        # Version invertida en gris: asi un recorte de Facebook en modo oscuro
+        # tambien se encuentra en modo claro, y al reves.
+        invertido = ImageOps.invert(recorte.convert("L")).convert("RGB")
+        variantes += [(recorte, False, e), (invertido, True, e)]
     inicio = time.time()
     while time.time() - inicio < espera:
         punto = None
-        for imagen, gris in ((recorte, False), (invertido, True)):
+        for imagen, gris, e in variantes:
             try:
                 punto = pyautogui.locateCenterOnScreen(imagen, confidence=PARECIDO, grayscale=gris)
             except pyautogui.ImageNotFoundException:
                 punto = None
             if punto:
+                if escala is None and e != 1.0:
+                    print(f"   (tu pantalla esta al {e:.0%}, ajusto los tamanos)")
+                escala = e
                 return punto
         if scroll_en:
             pyautogui.moveTo(scroll_en)
@@ -130,18 +146,21 @@ def elegir_opcion(campo, subcarpeta, valor, formulario):
     # Facebook abre la lista debajo del campo, o encima si el campo esta en la
     # mitad de abajo de la pantalla. Si la opcion no se ve, bajamos dentro de la lista.
     if campo_abierto.y > pyautogui.size().height / 2:
-        lista = pyautogui.Point(campo_abierto.x, campo_abierto.y - 150)
+        lista = pyautogui.Point(campo_abierto.x, campo_abierto.y - 150 * (escala or 1))
     else:
-        lista = pyautogui.Point(campo_abierto.x, campo_abierto.y + 150)
+        lista = pyautogui.Point(campo_abierto.x, campo_abierto.y + 150 * (escala or 1))
     clic(f"{subcarpeta}/{valor}", espera=12, scroll_en=lista)
 
 
 def marcar_grupos(lista):
+    casilla = Image.open(BOTONES / "casilla.png").convert("RGB")
+    if escala and escala != 1.0:
+        casilla = casilla.resize((round(casilla.width * escala), round(casilla.height * escala)), Image.LANCZOS)
     marcados = 0
     sin_nuevos = 0
     while marcados < MAX_GRUPOS and sin_nuevos < 2:
         try:
-            casillas = list(pyautogui.locateAllOnScreen(str(BOTONES / "casilla.png"), confidence=0.9))
+            casillas = list(pyautogui.locateAllOnScreen(casilla, confidence=0.9))
         except pyautogui.ImageNotFoundException:
             casillas = []
         if not casillas:
@@ -243,8 +262,7 @@ def main():
     if not carpetas:
         raise SystemExit("No hay articulos en publicaciones/ (cada uno necesita su datos.txt).")
 
-    print("Tienes 5 segundos para poner al frente tu navegador con Facebook...")
-    time.sleep(5)
+    preparar_navegador()
     for carpeta in carpetas:
         try:
             publicar(carpeta, args.confirmar)
