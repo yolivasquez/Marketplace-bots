@@ -12,18 +12,23 @@ def _ventanas():
     return [v for v in gw.getAllWindows() if v.title.strip()]
 
 
+def _titulo(ventana):
+    # Edge escribe "Microsoft\u200b Edge" con un espacio invisible en el titulo.
+    return ventana.title.replace("\u200b", "").strip()
+
+
 def traer_navegador():
     """Busca la ventana de Facebook (o, si no, cualquier navegador) y la activa.
 
     Devuelve True si la puso al frente.
     """
     ventanas = _ventanas()
-    candidatas = [v for v in ventanas if "Facebook" in v.title and any(n in v.title for n in NAVEGADORES)]
-    candidatas = candidatas or [v for v in ventanas if any(v.title.endswith(n) for n in NAVEGADORES)]
+    candidatas = [v for v in ventanas if "Facebook" in _titulo(v) and any(n in _titulo(v) for n in NAVEGADORES)]
+    candidatas = candidatas or [v for v in ventanas if any(n in _titulo(v) for n in NAVEGADORES)]
     if not candidatas:
         return False
     ventana = candidatas[0]
-    print(f"Pongo al frente: {ventana.title}")
+    print(f"Pongo al frente: {_titulo(ventana)}")
     try:
         if ventana.isMinimized:
             ventana.restore()
@@ -46,6 +51,6 @@ def traer_navegador():
 def preparar_navegador():
     if traer_navegador():
         return
-    print("No encontre tu navegador abierto. Abre Facebook en Chrome o Brave.")
+    print("No encontre tu navegador abierto. Abre Facebook en Chrome, Brave o Edge.")
     print("Tienes 8 segundos para ponerlo al frente...")
     time.sleep(8)
