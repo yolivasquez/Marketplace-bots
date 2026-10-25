@@ -1,0 +1,10 @@
+2026-10-25 11:13 · Borrar
+Pantalla: 1920x1080 · escala de Windows: 125%
+Pongo al frente: Facebook - Google Chrome
+   [   2.2 s] Abriendo tus publicaciones
+   Recargo la página y pruebo otra vez.
+   [  21.6 s] Recargando la página
+   Lo más parecido a «compartir»: 60% (tamaño 100%; hace falta 85%)
+   Lo más parecido a «vacio»: 50% (tamaño 90%; hace falta 85%)
+   Guardé la captura C:\Users\sarit\Desktop\Marketplace-bots\registros\2026-10-25_111328_borrar/fallo_borrar_pagina.png: círculo = donde di clic, cuadro = donde busqué.
+Terminé. Publicaciones borradas: 0

@@ -1,0 +1,7 @@
+2026-10-25 11:03 · Borrar
+Pongo al frente: Facebook - Google Chrome
+   [   5.3 s] Abriendo tus publicaciones
+   Recargo la página y pruebo otra vez.
+   [  23.1 s] Recargando la página
+   Guardé la captura C:\Users\sarit\Desktop\Marketplace-bots\registros\2026-10-25_110319_borrar/fallo_borrar_pagina.png: círculo = donde di clic, cuadro = donde busqué.
+Terminé. Publicaciones borradas: 0
